@@ -76,11 +76,11 @@
   @media (max-width: 460px) { .identite { grid-template-columns: 1fr; } }
   .champ { display: grid; gap: 6px; min-width: 0; }
   label, legend { font-weight: 700; font-size: 14px; }
-  input[type=text] {
+  input[type=text], input[type=email] {
     font: inherit; color: var(--blanc); background: rgba(255,255,255,.07);
     border: 1.5px solid rgba(255,255,255,.22); border-radius: 6px; padding: 11px 12px; width: 100%;
   }
-  input[type=text]:focus { outline: none; border-color: var(--jaune); box-shadow: 0 0 0 3px rgba(245,197,24,.3); }
+  input[type=text]:focus, input[type=email]:focus { outline: none; border-color: var(--jaune); box-shadow: 0 0 0 3px rgba(245,197,24,.3); }
   fieldset { border: 0; padding: 0; margin: 0; min-width: 0; display: grid; gap: 14px; }
   .aide { margin: 0; font-size: 13px; color: var(--doux); }
 
@@ -169,6 +169,10 @@
             <input type="text" id="nom" name="nom" autocomplete="family-name" maxlength="60" required>
           </div>
         </div>
+        <div class="champ">
+          <label for="email">Adresse mail</label>
+          <input type="email" id="email" name="email" autocomplete="email" maxlength="100" required>
+        </div>
       </section>
 
       <section class="panneau" style="--c: var(--rouge)">
@@ -247,14 +251,8 @@
 
       <section class="panneau" style="--c: var(--violet)">
         <h2>Ta cotisation</h2>
-        <fieldset>
-          <legend>As-tu payé ta cotisation AS CY 2026-2027 ?</legend>
-          <div class="choix">
-            <label><input type="radio" id="paye-oui" name="paye" value="oui"> Oui</label>
-            <label><input type="radio" id="paye-non" name="paye" value="non"> Non</label>
-          </div>
-          <p class="prix"><small>Adhésion à la licence FFSU</small><strong>15 €</strong></p>
-        </fieldset>
+        <p class="aide">La cotisation AS CY 2026-2027 doit être payée sur <a href="https://www.helloasso.com/associations/as-cy-cergy-paris-universite/evenements/cotisation-as-cy-2026-2027" rel="noopener">HelloAsso</a> avant de pouvoir t'inscrire.</p>
+        <p class="prix"><small>Adhésion à la licence FFSU</small><strong>15 €</strong></p>
       </section>
 
       <div class="action">
@@ -296,12 +294,12 @@
     const donnees = {
       prenom: form.prenom.value.trim(),
       nom: form.nom.value.trim(),
-      sports: sportsCoches(),
-      paye: (form.querySelector('input[name=paye]:checked') || {}).value || ''
+      email: form.email.value.trim(),
+      sports: sportsCoches()
     };
     if (!donnees.prenom || !donnees.nom) return afficherErreur('Indique ton nom et ton prénom.');
+    if (!donnees.email) return afficherErreur('Indique ton adresse mail.');
     if (donnees.sports.length === 0) return afficherErreur('Choisis au moins un sport.');
-    if (!donnees.paye) return afficherErreur('Indique si tu as payé ta cotisation.');
 
     bouton.disabled = true;
     bouton.textContent = 'Envoi…';
@@ -313,7 +311,7 @@
       .then(function (res) { return res.json(); })
       .then(function (r) {
         reinitBouton();
-        if (!r.ok) return afficherErreur(r.erreur);
+        if (!r.ok && !r.nonPaye) return afficherErreur(r.erreur);
         montrerResultat(r);
       })
       .catch(function () {
@@ -332,13 +330,12 @@
   function montrerResultat(r) {
     form.hidden = true;
     resultat.replaceChildren();
-    const recap = el('p', 'recap', 'Sports : ' + r.sports.join(', '));
-    if (r.paye) {
+    if (r.ok) {
       resultat.append(
         el('span', 'badge ok', 'Inscription confirmée'),
         el('h2', '', 'C’est bon, ' + r.prenom + ' !'),
         el('p', '', 'Ton inscription est enregistrée. À très vite sur le terrain !'),
-        recap
+        el('p', 'recap', 'Sports : ' + r.sports.join(', '))
       );
     } else {
       resultat.style.setProperty('--c', 'var(--jaune)');
@@ -346,12 +343,12 @@
       lien.href = HELLOASSO;
       lien.rel = 'noopener';
       resultat.append(
-        el('span', 'badge attente', 'Cotisation à régler'),
-        el('h2', '', 'Dernière étape, ' + r.prenom),
-        el('p', '', 'Ton inscription est enregistrée. Pour participer aux compétitions, règle ta cotisation sur HelloAsso.'),
-        recap, lien
+        el('span', 'badge attente', 'Inscription refusée'),
+        el('h2', '', 'Cotisation introuvable, ' + r.prenom),
+        el('p', '', 'Nous n’avons trouvé aucune cotisation à ton nom : ton inscription n’est pas enregistrée. Un mail d’explication a été envoyé à ' + r.email + '.'),
+        el('p', '', 'Si tu viens de payer, attends que l’AS enregistre ton paiement avant de te réinscrire.'),
+        lien
       );
-      setTimeout(function () { window.location.href = HELLOASSO; }, 2500);
     }
     resultat.hidden = false;
     resultat.scrollIntoView({ behavior: 'smooth', block: 'start' });
