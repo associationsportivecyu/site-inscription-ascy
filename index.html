@@ -251,7 +251,7 @@
 
       <section class="panneau" style="--c: var(--violet)">
         <h2>Ta cotisation</h2>
-        <p class="aide">La cotisation AS CY 2026-2027 doit être payée sur <a href="https://www.helloasso.com/associations/as-cy-cergy-paris-universite/evenements/cotisation-as-cy-2026-2027" rel="noopener">HelloAsso</a> avant de pouvoir t'inscrire.</p>
+        <p class="aide">La cotisation AS CY 2026-2027 doit être payée sur <a href="https://www.helloasso.com/associations/as-cy-cergy-paris-universite/evenements/cotisation-as-cy-2026-2027" rel="noopener">HelloAsso</a>. Ton inscription sera validée une fois ta cotisation payée, et tu recevras un mail de confirmation quand tu seras bien inscrit.</p>
         <p class="prix"><small>Adhésion à la licence FFSU</small><strong>15 €</strong></p>
       </section>
 
@@ -343,10 +343,10 @@
       lien.href = HELLOASSO;
       lien.rel = 'noopener';
       resultat.append(
-        el('span', 'badge attente', 'Inscription refusée'),
-        el('h2', '', 'Cotisation introuvable, ' + r.prenom),
-        el('p', '', 'Nous n’avons trouvé aucune cotisation à ton nom : ton inscription n’est pas enregistrée. Un mail d’explication a été envoyé à ' + r.email + '.'),
-        el('p', '', 'Si tu viens de payer, attends que l’AS enregistre ton paiement avant de te réinscrire.'),
+        el('span', 'badge attente', 'En attente de paiement'),
+        el('h2', '', 'Plus qu’une étape, ' + r.prenom),
+        el('p', '', 'Nous n’avons trouvé aucune cotisation à ton nom. Ton inscription sera validée une fois ta cotisation payée, et tu recevras un mail de confirmation quand tu seras bien inscrit.'),
+        el('p', '', 'Tant que tu n’as pas reçu ce mail, tu n’es pas inscrit. Un mail d’explication a été envoyé à ' + r.email + '.'),
         lien
       );
     }
