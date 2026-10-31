@@ -135,7 +135,9 @@
   .badge.ok { background: var(--vert); color: var(--marine); }
   .badge.attente { background: var(--jaune); color: var(--marine); }
   .recap { font-weight: 700; color: var(--doux); }
-  .resultat .bouton { background: var(--jaune); color: var(--marine); }
+  .resultat .bouton, .suivi .bouton { background: var(--jaune); color: var(--marine); }
+  .suivi-resultat { display: grid; gap: 10px; }
+  .suivi-resultat p { margin: 0; }
 
   .contact { font: 800 13px/1.6 var(--f); text-transform: uppercase; color: var(--blanc); margin: 4px 0 0; }
   .contact span { text-transform: none; }
@@ -264,6 +266,16 @@
 
     <section class="panneau resultat" id="resultat" style="--c: var(--vert)" hidden aria-live="polite"></section>
 
+    <form class="panneau suivi" id="suivi" style="--c: var(--vert)" novalidate>
+      <h2>Suivre mon inscription</h2>
+      <div class="champ">
+        <label for="suivi-email">Adresse mail utilisée pour t'inscrire</label>
+        <input type="email" id="suivi-email" autocomplete="email" maxlength="100" required>
+      </div>
+      <button class="bouton" type="submit" id="suivi-bouton">Voir mon statut</button>
+      <div class="suivi-resultat" id="suivi-resultat" aria-live="polite" hidden></div>
+    </form>
+
     <p class="contact">Instagram : <span>@as.cyu</span><br>Mail : <span>associationsportive.cy@gmail.com</span></p>
   </div>
 
@@ -332,7 +344,7 @@
     resultat.replaceChildren();
     if (r.ok) {
       resultat.append(
-        el('span', 'badge ok', 'Inscription confirmée'),
+        el('span', 'badge ok', 'Inscription validée'),
         el('h2', '', 'C’est bon, ' + r.prenom + ' !'),
         el('p', '', 'Ton inscription est enregistrée. À très vite sur le terrain !'),
         el('p', 'recap', 'Sports : ' + r.sports.join(', '))
@@ -346,13 +358,65 @@
         el('span', 'badge attente', 'En attente de paiement'),
         el('h2', '', 'Plus qu’une étape, ' + r.prenom),
         el('p', '', 'Nous n’avons trouvé aucune cotisation à ton nom. Ton inscription sera validée une fois ta cotisation payée, et tu recevras un mail de confirmation quand tu seras bien inscrit.'),
-        el('p', '', 'Tant que tu n’as pas reçu ce mail, tu n’es pas inscrit. Un mail d’explication a été envoyé à ' + r.email + '.'),
+        el('p', '', 'Tant que tu n’as pas reçu ce mail, tu n’es pas inscrit. Un mail d’explication a été envoyé à ' + r.email + '. Tu peux suivre ton statut en bas de cette page.'),
         lien
       );
     }
     resultat.hidden = false;
     resultat.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
+
+  const suivi = document.getElementById('suivi');
+  const suiviEmail = document.getElementById('suivi-email');
+  const suiviBouton = document.getElementById('suivi-bouton');
+  const suiviResultat = document.getElementById('suivi-resultat');
+
+  function montrerSuivi(enfants) {
+    suiviResultat.replaceChildren.apply(suiviResultat, enfants);
+    suiviResultat.hidden = false;
+  }
+
+  suivi.addEventListener('submit', function (e) {
+    e.preventDefault();
+    const email = suiviEmail.value.trim();
+    if (!email) return montrerSuivi([el('p', 'erreur', 'Indique ton adresse mail.')]);
+
+    suiviBouton.disabled = true;
+    suiviBouton.textContent = 'Recherche…';
+    fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'statut', email: email })
+    })
+      .then(function (res) { return res.json(); })
+      .then(function (r) {
+        if (!r.ok) return montrerSuivi([el('p', 'erreur', r.erreur)]);
+        if (r.statut === 'valide') {
+          return montrerSuivi([
+            el('span', 'badge ok', 'Inscription validée'),
+            el('p', '', 'Ta cotisation est bien reçue : tu es inscrit aux compétitions universitaires.')
+          ]);
+        }
+        if (r.statut === 'attente') {
+          const lien = el('a', 'bouton', 'Payer ma cotisation sur HelloAsso');
+          lien.href = HELLOASSO;
+          lien.rel = 'noopener';
+          return montrerSuivi([
+            el('span', 'badge attente', 'En attente de paiement'),
+            el('p', '', 'Ton inscription sera validée une fois ta cotisation vérifiée. Si tu viens de payer, cela peut prendre un peu de temps : tu recevras un mail de confirmation.'),
+            lien
+          ]);
+        }
+        montrerSuivi([el('p', '', 'Aucune inscription trouvée avec cette adresse.')]);
+      })
+      .catch(function () {
+        montrerSuivi([el('p', 'erreur', 'Le statut n’a pas pu être chargé. Vérifie ta connexion et réessaie.')]);
+      })
+      .finally(function () {
+        suiviBouton.disabled = false;
+        suiviBouton.textContent = 'Voir mon statut';
+      });
+  });
 </script>
 </body>
 </html>
